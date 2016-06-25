@@ -53,7 +53,7 @@ fn main() {
     digit          ::= '0' | non_zero_digit
     int            ::= non_zero_digit { digit }
     modifier       ::= '+' int
-    | '-' int
+                     | '-' int
     roll           ::= int 'd' int [ modifier ]
     */
     let roll_re = Regex::new(r"(?x)

@@ -45,11 +45,24 @@ impl Roll {
 
 fn main() {
     let argv: Vec<String> = args().collect();
+
+    /*
+    GRAMMAR (this is a regular language)
+    ====================================
+    non_zero_digit ::= '1' | ... | '9'
+    digit          ::= '0' | non_zero_digit
+    int            ::= non_zero_digit { digit }
+    modifier       ::= '+' int
+    | '-' int
+    roll           ::= int 'd' int [ modifier ]
+    */
     let roll_re = Regex::new(r"(?x)
+      ^
       ([1-9][0-9]*)             # Number of dice
       d                         # The literal 'd'
       ([1-9][0-9]*)             # Number of faces
       ([+-][1-9][0-9]*)?        # Optional extra
+      $
     ").unwrap();
 
     for arg in &argv[1..] {

@@ -1,6 +1,9 @@
 extern crate regex;
 
 use std::env::args;
+use std::fmt;
+use std::io;
+use std::io::Write;
 
 use regex::Regex;
 
@@ -37,9 +40,23 @@ impl Roll {
     }
 
     fn print(&self) {
-        println!("\tmin: {}", self.min());
-        println!("\tmax: {}", self.max());
-        println!("\tev : {}", self.ev());
+        println!("{}: {} {} {}", self, self.min(), self.max(), self.ev())
+    }
+
+    fn pretty_print(&self) {
+        println!("{}:\n\tmin: {}\n\tmax: {}\n\tev : {}",
+                 self, self.min(), self.max(), self.ev())
+    }
+}
+
+impl fmt::Display for Roll {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}d{}", self.num_dice, self.num_faces);
+        if self.extra != 0.0 {
+            write!(f, "{:+}", self.extra)
+        } else {
+            Ok(())
+        }
     }
 }
 
@@ -76,8 +93,7 @@ fn main() {
                     num_faces: nf,
                     extra: ex,
                 };
-                println!("{}", *arg);
-                roll.print();
+                roll.pretty_print();
             }
 
             None => {

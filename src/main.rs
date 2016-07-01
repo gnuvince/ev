@@ -81,7 +81,8 @@ fn main() {
             }
 
             None => {
-                println!("ev: invalid format: {}", arg);
+                let mut stderr = io::stderr();
+                writeln!(stderr, "ev: invalid format: {}", arg);
             }
         }
     }

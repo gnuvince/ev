@@ -44,7 +44,7 @@ impl Roll {
     }
 
     fn print(&self) {
-        println!("{}: {} {} {}", self, self.min(), self.max(), self.ev())
+        println!("{} {} {} {}", self, self.min(), self.max(), self.ev())
     }
 
     fn pretty_print(&self) {

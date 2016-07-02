@@ -43,13 +43,13 @@ impl Roll {
         self.num_dice * self.num_faces + self.extra
     }
 
-    fn print(&self) {
-        println!("{} {} {} {}", self, self.min(), self.max(), self.ev())
+    fn print(&self) -> String {
+        format!("{} {} {} {}", self, self.min(), self.max(), self.ev())
     }
 
-    fn pretty_print(&self) {
-        println!("{}:\n\tmin: {}\n\tmax: {}\n\tev : {}",
-                 self, self.min(), self.max(), self.ev())
+    fn pretty_print(&self) -> String {
+        format!("{}:\n\tmin: {}\n\tmax: {}\n\tev : {}",
+                self, self.min(), self.max(), self.ev())
     }
 }
 
@@ -111,16 +111,16 @@ fn parse_and_print(line: &str, single_line: bool) {
                 extra: ex,
             };
             if single_line {
-                roll.print();
+                println!("{}", roll.print());
             } else {
-                roll.pretty_print();
+                println!("{}", roll.pretty_print());
             }
         }
 
         None => {
-            errmsg(&format!("invalid format: {}", line));
-        }
+        errmsg(&format!("invalid format: {}", line));
     }
+}
 }
 
 

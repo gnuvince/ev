@@ -1,12 +1,14 @@
 extern crate regex;
+extern crate getopts;
 
 use std::env::args;
 use std::fmt;
 use std::io;
 use std::io::Write;
+use std::process;
 
 use regex::Regex;
-
+use getopts::Options;
 
 /// A roll consists of:
 /// - A number of dice (positive integer)
@@ -60,8 +62,34 @@ impl fmt::Display for Roll {
     }
 }
 
+fn errmsg(msg: &str) {
+    let mut stderr = io::stderr();
+    writeln!(stderr, "ev: {}", msg);
+}
+
+fn usage(opts: &Options, progname: &str) {
+    let brief = format!("Usage: {} [options] [rolls ...]", progname);
+    print!("{}", opts.usage(&brief));
+}
+
 fn main() {
     let argv: Vec<String> = args().collect();
+    let mut opts = Options::new();
+    opts.optflag("h", "help", "display this help message");
+    opts.optflag("p", "pretty", "pretty (multi-line) display");
+
+    let matches = match opts.parse(&argv[1..]) {
+        Ok(m) => m,
+        Err(e) => {
+            errmsg(&format!("{}", e));
+            return;
+        }
+    };
+
+    if matches.opt_present("h") {
+        usage(&opts, &argv[0]);
+        return;
+    }
 
     /*
     GRAMMAR (this is a regular language)
@@ -82,8 +110,8 @@ fn main() {
       $
     ").unwrap();
 
-    for arg in &argv[1..] {
-        match roll_re.captures(arg) {
+    for arg in matches.free.iter() {
+        match roll_re.captures(&arg) {
             Some(cap) => {
                 let nd = cap.at(1).unwrap().parse::<f32>().unwrap();
                 let nf = cap.at(2).unwrap().parse::<f32>().unwrap();
@@ -93,12 +121,15 @@ fn main() {
                     num_faces: nf,
                     extra: ex,
                 };
-                roll.pretty_print();
+                if matches.opt_present("p") {
+                    roll.pretty_print();
+                } else {
+                    roll.print();
+                }
             }
 
             None => {
-                let mut stderr = io::stderr();
-                writeln!(stderr, "ev: invalid format: {}", arg);
+                errmsg(&format!("invalid format: {}", arg));
             }
         }
     }

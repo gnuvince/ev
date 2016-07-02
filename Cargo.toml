@@ -5,3 +5,4 @@ authors = ["Vincent Foley <vfoley@gmail.com>"]
 
 [dependencies]
 regex = "0.1.71"
+getopts = "*"

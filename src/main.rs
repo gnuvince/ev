@@ -118,9 +118,9 @@ fn parse_and_print(line: &str, single_line: bool) {
         }
 
         None => {
-        errmsg(&format!("invalid format: {}", line));
+            errmsg(&format!("invalid format: {}", line));
+        }
     }
-}
 }
 
 

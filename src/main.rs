@@ -77,7 +77,7 @@ fn usage(opts: &Options, progname: &str) {
     print!("{}", opts.usage(&brief));
 }
 
-fn parse_and_print(line: &str, simple_print: bool) {
+fn parse_and_print(line: &str, single_line: bool) {
     /*
     GRAMMAR (this is a regular language)
     ====================================
@@ -109,7 +109,7 @@ fn parse_and_print(line: &str, simple_print: bool) {
                 num_faces: nf,
                 extra: ex,
             };
-            if simple_print {
+            if single_line {
                 roll.print();
             } else {
                 roll.pretty_print();
@@ -127,7 +127,7 @@ fn main() {
     let argv: Vec<String> = args().collect();
     let mut opts = Options::new();
     opts.optflag("h", "help", "display this help message");
-    opts.optflag("s", "simplified", "simplified (single line) display");
+    opts.optflag("s", "single-line", "single line display");
 
     let matches = match opts.parse(&argv[1..]) {
         Ok(m) => m,
@@ -142,17 +142,17 @@ fn main() {
         process::exit(0);
     }
 
-    let simplified_print = matches.opt_present("s");
+    let single_line = matches.opt_present("s");
 
     if !matches.free.is_empty() {
         for arg in matches.free.iter() {
-            parse_and_print(arg, simplified_print);
+            parse_and_print(arg, single_line);
         }
     } else {
         let stdin = io::stdin();
         let mut buf = String::new();
         while stdin.read_line(&mut buf).unwrap() > 0 {
-            parse_and_print(buf.trim(), simplified_print);
+            parse_and_print(buf.trim(), single_line);
             buf.clear();
         }
     }

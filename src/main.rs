@@ -158,3 +158,26 @@ fn main() {
         }
     }
 }
+
+#[test]
+fn test_roll() {
+    let r = Roll { num_dice: 1.0, num_faces: 6.0, extra: 0.0 };
+    assert_eq!(r.min(), 1.0);
+    assert_eq!(r.max(), 6.0);
+    assert_eq!(r.ev(), 3.5);
+
+    let r = Roll { num_dice: 2.0, num_faces: 6.0, extra: 0.0 };
+    assert_eq!(r.min(), 2.0);
+    assert_eq!(r.max(), 12.0);
+    assert_eq!(r.ev(), 7.0);
+
+    let r = Roll { num_dice: 1.0, num_faces: 6.0, extra: 1.0 };
+    assert_eq!(r.min(), 2.0);
+    assert_eq!(r.max(), 7.0);
+    assert_eq!(r.ev(), 4.5);
+
+    let r = Roll { num_dice: 1.0, num_faces: 6.0, extra: -1.0 };
+    assert_eq!(r.min(), 0.0);
+    assert_eq!(r.max(), 5.0);
+    assert_eq!(r.ev(), 2.5);
+}

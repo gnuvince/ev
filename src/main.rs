@@ -1,5 +1,6 @@
 extern crate regex;
 extern crate getopts;
+#[macro_use] extern crate lazy_static;
 
 use std::env::args;
 use std::fmt;
@@ -24,6 +25,7 @@ impl Roll {
     /// Compute the expected value: expected value of one die
     /// multiplied by the number of dice, then add the extra.
     fn ev(&self) -> f32 {
+        // Math reminder:
         // \sum_{i=1}^{n} = n(n+1) / 2
         // therefore
         // 1/n * \sum_{i=1}^{n} = (n+1) / 2
@@ -51,9 +53,10 @@ impl Roll {
     }
 }
 
+/// Convert a roll into the 'XdY+Z' notation.
 impl fmt::Display for Roll {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}d{}", self.num_dice, self.num_faces);
+        let _ = write!(f, "{}d{}", self.num_dice, self.num_faces);
         if self.extra != 0.0 {
             write!(f, "{:+}", self.extra)
         } else {
@@ -62,35 +65,19 @@ impl fmt::Display for Roll {
     }
 }
 
+/// Display a message on stderr
 fn errmsg(msg: &str) {
     let mut stderr = io::stderr();
-    writeln!(stderr, "ev: {}", msg);
+    let _ = writeln!(stderr, "ev: {}", msg);
 }
 
+/// Show basic usage of the program
 fn usage(opts: &Options, progname: &str) {
     let brief = format!("Usage: {} [options] [rolls ...]", progname);
     print!("{}", opts.usage(&brief));
 }
 
-fn main() {
-    let argv: Vec<String> = args().collect();
-    let mut opts = Options::new();
-    opts.optflag("h", "help", "display this help message");
-    opts.optflag("p", "pretty", "pretty (multi-line) display");
-
-    let matches = match opts.parse(&argv[1..]) {
-        Ok(m) => m,
-        Err(e) => {
-            errmsg(&format!("{}", e));
-            return;
-        }
-    };
-
-    if matches.opt_present("h") {
-        usage(&opts, &argv[0]);
-        return;
-    }
-
+fn parse_and_print(line: &str, simple_print: bool) {
     /*
     GRAMMAR (this is a regular language)
     ====================================
@@ -101,36 +88,72 @@ fn main() {
                      | '-' int
     roll           ::= int 'd' int [ modifier ]
     */
-    let roll_re = Regex::new(r"(?x)
-      ^
-      ([1-9][0-9]*)             # Number of dice
-      d                         # The literal 'd'
-      ([1-9][0-9]*)             # Number of faces
-      ([+-][1-9][0-9]*)?        # Optional extra
-      $
-    ").unwrap();
+    lazy_static! {
+        static ref ROLL_RE: Regex = Regex::new(r"(?x)
+            ^
+            ([1-9][0-9]*)             # Number of dice
+            d                         # The literal 'd'
+            ([1-9][0-9]*)             # Number of faces
+            ([+-][1-9][0-9]*)?        # Optional extra
+            $
+        ").unwrap();
+    }
 
-    for arg in matches.free.iter() {
-        match roll_re.captures(&arg) {
-            Some(cap) => {
-                let nd = cap.at(1).unwrap().parse::<f32>().unwrap();
-                let nf = cap.at(2).unwrap().parse::<f32>().unwrap();
-                let ex = cap.at(3).unwrap_or("0").parse::<f32>().unwrap();
-                let roll = Roll {
-                    num_dice: nd,
-                    num_faces: nf,
-                    extra: ex,
-                };
-                if matches.opt_present("p") {
-                    roll.pretty_print();
-                } else {
-                    roll.print();
-                }
+    match ROLL_RE.captures(line) {
+        Some(cap) => {
+            let nd = cap.at(1).unwrap().parse::<f32>().unwrap();
+            let nf = cap.at(2).unwrap().parse::<f32>().unwrap();
+            let ex = cap.at(3).unwrap_or("0").parse::<f32>().unwrap();
+            let roll = Roll {
+                num_dice: nd,
+                num_faces: nf,
+                extra: ex,
+            };
+            if simple_print {
+                roll.print();
+            } else {
+                roll.pretty_print();
             }
+        }
 
-            None => {
-                errmsg(&format!("invalid format: {}", arg));
-            }
+        None => {
+            errmsg(&format!("invalid format: {}", line));
+        }
+    }
+}
+
+
+fn main() {
+    let argv: Vec<String> = args().collect();
+    let mut opts = Options::new();
+    opts.optflag("h", "help", "display this help message");
+    opts.optflag("s", "simplified", "simplified (single line) display");
+
+    let matches = match opts.parse(&argv[1..]) {
+        Ok(m) => m,
+        Err(e) => {
+            errmsg(&format!("{}", e));
+            process::exit(1);
+        }
+    };
+
+    if matches.opt_present("h") {
+        usage(&opts, &argv[0]);
+        process::exit(0);
+    }
+
+    let simplified_print = matches.opt_present("s");
+
+    if !matches.free.is_empty() {
+        for arg in matches.free.iter() {
+            parse_and_print(arg, simplified_print);
+        }
+    } else {
+        let stdin = io::stdin();
+        let mut buf = String::new();
+        while stdin.read_line(&mut buf).unwrap() > 0 {
+            parse_and_print(buf.trim(), simplified_print);
+            buf.clear();
         }
     }
 }

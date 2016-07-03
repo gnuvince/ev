@@ -16,12 +16,18 @@ use getopts::Options;
 /// - A number of faces (positive integer)
 /// - An extra (e.g., +3 or -4)
 struct Roll {
-    num_dice: f32,
-    num_faces: f32,
-    extra: f32,
+    num_dice: i32,
+    num_faces: i32,
+    extra: i32,
 }
 
 impl Roll {
+    fn float_values(&self) -> (f32, f32, f32) {
+        (self.num_dice as f32,
+         self.num_faces as f32,
+         self.extra as f32)
+    }
+
     /// Compute the expected value: expected value of one die
     /// multiplied by the number of dice, then add the extra.
     fn ev(&self) -> f32 {
@@ -29,18 +35,21 @@ impl Roll {
         // \sum_{i=1}^{n} = n(n+1) / 2
         // therefore
         // 1/n * \sum_{i=1}^{n} = (n+1) / 2
-        let single_die_ev = (self.num_faces + 1.0) / 2.0;
-        self.num_dice * single_die_ev + self.extra
+        let (nd, nf, extra) = self.float_values();
+        let single_die_ev = (nf + 1.0) / 2.0;
+        nd * single_die_ev + extra
     }
 
     /// Compute the minimum value.
     fn min(&self) -> f32 {
-        self.num_dice + self.extra
+        let (nd, _, extra) = self.float_values();
+        nd + extra
     }
 
     /// Compute the maximum value.
     fn max(&self) -> f32 {
-        self.num_dice * self.num_faces + self.extra
+        let (nd, nf, extra) = self.float_values();
+        nd * nf + extra
     }
 
     fn print(&self) -> String {
@@ -57,7 +66,7 @@ impl Roll {
 impl fmt::Display for Roll {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let _ = write!(f, "{}d{}", self.num_dice, self.num_faces);
-        if self.extra != 0.0 {
+        if self.extra != 0 {
             write!(f, "{:+}", self.extra)
         } else {
             Ok(())
@@ -102,9 +111,9 @@ fn parse_and_print(line: &str, single_line: bool) {
 
     match ROLL_RE.captures(line) {
         Some(cap) => {
-            let nd = cap.at(1).unwrap().parse::<f32>().unwrap();
-            let nf = cap.at(2).unwrap().parse::<f32>().unwrap();
-            let ex = cap.at(3).unwrap_or("0").parse::<f32>().unwrap();
+            let nd = cap.at(1).unwrap().parse::<i32>().unwrap();
+            let nf = cap.at(2).unwrap().parse::<i32>().unwrap();
+            let ex = cap.at(3).unwrap_or("0").parse::<i32>().unwrap();
             let roll = Roll {
                 num_dice: nd,
                 num_faces: nf,
@@ -161,22 +170,22 @@ fn main() {
 
 #[test]
 fn test_roll() {
-    let r = Roll { num_dice: 1.0, num_faces: 6.0, extra: 0.0 };
+    let r = Roll { num_dice: 1, num_faces: 6, extra: 0 };
     assert_eq!(r.min(), 1.0);
     assert_eq!(r.max(), 6.0);
     assert_eq!(r.ev(), 3.5);
 
-    let r = Roll { num_dice: 2.0, num_faces: 6.0, extra: 0.0 };
+    let r = Roll { num_dice: 2, num_faces: 6, extra: 0 };
     assert_eq!(r.min(), 2.0);
     assert_eq!(r.max(), 12.0);
     assert_eq!(r.ev(), 7.0);
 
-    let r = Roll { num_dice: 1.0, num_faces: 6.0, extra: 1.0 };
+    let r = Roll { num_dice: 1, num_faces: 6, extra: 1 };
     assert_eq!(r.min(), 2.0);
     assert_eq!(r.max(), 7.0);
     assert_eq!(r.ev(), 4.5);
 
-    let r = Roll { num_dice: 1.0, num_faces: 6.0, extra: -1.0 };
+    let r = Roll { num_dice: 1, num_faces: 6, extra: -1 };
     assert_eq!(r.min(), 0.0);
     assert_eq!(r.max(), 5.0);
     assert_eq!(r.ev(), 2.5);
@@ -184,10 +193,10 @@ fn test_roll() {
 
 #[test]
 fn test_print() {
-    let r = Roll { num_dice: 1.0, num_faces: 6.0, extra: 0.0 };
+    let r = Roll { num_dice: 1, num_faces: 6, extra: 0 };
     assert_eq!(format!("{}", r), "1d6");
-    let r = Roll { num_dice: 2.0, num_faces: 4.0, extra: 1.0 };
+    let r = Roll { num_dice: 2, num_faces: 4, extra: 1 };
     assert_eq!(format!("{}", r), "2d4+1");
-    let r = Roll { num_dice: 3.0, num_faces: 10.0, extra: -1.0 };
+    let r = Roll { num_dice: 3, num_faces: 10, extra: -1 };
     assert_eq!(format!("{}", r), "3d10-1");
 }

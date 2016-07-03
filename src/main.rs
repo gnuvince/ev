@@ -181,3 +181,13 @@ fn test_roll() {
     assert_eq!(r.max(), 5.0);
     assert_eq!(r.ev(), 2.5);
 }
+
+#[test]
+fn test_print() {
+    let r = Roll { num_dice: 1.0, num_faces: 6.0, extra: 0.0 };
+    assert_eq!(format!("{}", r), "1d6");
+    let r = Roll { num_dice: 2.0, num_faces: 4.0, extra: 1.0 };
+    assert_eq!(format!("{}", r), "2d4+1");
+    let r = Roll { num_dice: 3.0, num_faces: 10.0, extra: -1.0 };
+    assert_eq!(format!("{}", r), "3d10-1");
+}

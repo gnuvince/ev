@@ -22,6 +22,8 @@ struct Roll {
 }
 
 impl Roll {
+    // A small helper method to extract the integer
+    // fields as floats for making calculations.
     fn float_values(&self) -> (f32, f32, f32) {
         (self.num_dice as f32,
          self.num_faces as f32,
@@ -82,8 +84,11 @@ fn errmsg(msg: &str) {
 
 /// Show basic usage of the program
 fn usage(opts: &Options, progname: &str) {
-    let brief = format!("Usage: {} [options] [rolls ...]\n\t roll: XdY, XdY+Z, XdY-Z (e.g. 1d6, 2d4+1, 3d8-1)",
-                        progname);
+    let brief = format!(
+        "Usage: {} [options] [rolls ...]
+\t roll: XdY, XdY+Z, XdY-Z (e.g. 1d6, 2d4+1, 3d8-1)",
+        progname
+    );
     print!("{}", opts.usage(&brief));
 }
 

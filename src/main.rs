@@ -1,3 +1,9 @@
+/*!
+A simple command-line utility to compute
+the minimum, maximum and expected value
+of a dice roll expressed in D&D notation.
+*/
+
 extern crate regex;
 extern crate getopts;
 #[macro_use] extern crate lazy_static;
@@ -11,17 +17,29 @@ use std::process;
 use regex::Regex;
 use getopts::Options;
 
-/// A roll consists of:
-/// - A number of dice (positive integer)
-/// - A number of faces (positive integer)
-/// - An extra (e.g., +3 or -4)
-struct Roll {
-    num_dice: i32,
-    num_faces: i32,
+/// A dice roll.
+///
+/// A dice roll has three components:
+///
+/// - A number of dice (positive integer);
+/// - A number of faces (positive integer);
+/// - An extra (e.g., +3 or -4).
+pub struct Roll {
+    num_dice: u32,
+    num_faces: u32,
     extra: i32,
 }
 
 impl Roll {
+    /// Create a new roll.
+    pub fn new(nd: u32, nf: u32, extra: i32) -> Self {
+        Roll {
+            num_dice: nd,
+            num_faces: nf,
+            extra: extra,
+        }
+    }
+
     // A small helper method to extract the integer
     // fields as floats for making calculations.
     fn float_values(&self) -> (f32, f32, f32) {
@@ -32,7 +50,7 @@ impl Roll {
 
     /// Compute the expected value: expected value of one die
     /// multiplied by the number of dice, then add the extra.
-    fn ev(&self) -> f32 {
+    pub fn ev(&self) -> f32 {
         // Math reminder:
         // \sum_{i=1}^{n} = n(n+1) / 2
         // therefore
@@ -43,28 +61,32 @@ impl Roll {
     }
 
     /// Compute the minimum value.
-    fn min(&self) -> f32 {
+    pub fn min(&self) -> f32 {
         let (nd, _, extra) = self.float_values();
         nd + extra
     }
 
     /// Compute the maximum value.
-    fn max(&self) -> f32 {
+    pub fn max(&self) -> f32 {
         let (nd, nf, extra) = self.float_values();
         nd * nf + extra
     }
 
-    fn print(&self) -> String {
+    /// Display the roll statistics on a single line.
+    /// Useful for usage in a Unix pipe-line.
+    pub fn print(&self) -> String {
         format!("{} {} {} {}", self, self.min(), self.max(), self.ev())
     }
 
-    fn pretty_print(&self) -> String {
+    /// Display the roll statistics on multiple lines.
+    /// Prettier to look at for a human.
+    pub fn pretty_print(&self) -> String {
         format!("{}:\n\tmin: {}\n\tmax: {}\n\tev : {}",
                 self, self.min(), self.max(), self.ev())
     }
 }
 
-/// Convert a roll into the 'XdY+Z' notation.
+/// Convert a roll into the `XdY+Z` notation.
 impl fmt::Display for Roll {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let _ = write!(f, "{}d{}", self.num_dice, self.num_faces);
@@ -116,14 +138,10 @@ fn parse_and_print(line: &str, single_line: bool) {
 
     match ROLL_RE.captures(line) {
         Some(cap) => {
-            let nd = cap.at(1).unwrap().parse::<i32>().unwrap();
-            let nf = cap.at(2).unwrap().parse::<i32>().unwrap();
+            let nd = cap.at(1).unwrap().parse::<u32>().unwrap();
+            let nf = cap.at(2).unwrap().parse::<u32>().unwrap();
             let ex = cap.at(3).unwrap_or("0").parse::<i32>().unwrap();
-            let roll = Roll {
-                num_dice: nd,
-                num_faces: nf,
-                extra: ex,
-            };
+            let roll = Roll::new(nd, nf, ex);
             if single_line {
                 println!("{}", roll.print());
             } else {
@@ -175,22 +193,22 @@ fn main() {
 
 #[test]
 fn test_roll() {
-    let r = Roll { num_dice: 1, num_faces: 6, extra: 0 };
+    let r = Roll::new(1, 6, 0);
     assert_eq!(r.min(), 1.0);
     assert_eq!(r.max(), 6.0);
     assert_eq!(r.ev(), 3.5);
 
-    let r = Roll { num_dice: 2, num_faces: 6, extra: 0 };
+    let r = Roll::new(2, 6, 0);
     assert_eq!(r.min(), 2.0);
     assert_eq!(r.max(), 12.0);
     assert_eq!(r.ev(), 7.0);
 
-    let r = Roll { num_dice: 1, num_faces: 6, extra: 1 };
+    let r = Roll::new(1, 6, 1);
     assert_eq!(r.min(), 2.0);
     assert_eq!(r.max(), 7.0);
     assert_eq!(r.ev(), 4.5);
 
-    let r = Roll { num_dice: 1, num_faces: 6, extra: -1 };
+    let r = Roll::new(1, 6, -1);
     assert_eq!(r.min(), 0.0);
     assert_eq!(r.max(), 5.0);
     assert_eq!(r.ev(), 2.5);
@@ -198,10 +216,10 @@ fn test_roll() {
 
 #[test]
 fn test_print() {
-    let r = Roll { num_dice: 1, num_faces: 6, extra: 0 };
+    let r = Roll::new(1, 6, 0);
     assert_eq!(format!("{}", r), "1d6");
-    let r = Roll { num_dice: 2, num_faces: 4, extra: 1 };
+    let r = Roll::new(2, 4, 1);
     assert_eq!(format!("{}", r), "2d4+1");
-    let r = Roll { num_dice: 3, num_faces: 10, extra: -1 };
+    let r = Roll::new(3, 10, -1);
     assert_eq!(format!("{}", r), "3d10-1");
 }

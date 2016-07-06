@@ -107,8 +107,9 @@ fn errmsg(msg: &str) {
 /// Show basic usage of the program
 fn usage(opts: &Options, progname: &str) {
     let brief = format!(
-        "Usage: {} [options] [rolls ...]
-\t roll: XdY, XdY+Z, XdY-Z (e.g. 1d6, 2d4+1, 3d8-1)",
+        concat!(
+            "Usage: {} [options] [rolls ...]\n",
+            "\troll: XdY, XdY+Z, XdY-Z (e.g. 1d6, 2d4+1, 3d8-1)"),
         progname
     );
     print!("{}", opts.usage(&brief));

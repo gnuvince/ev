@@ -115,7 +115,7 @@ fn usage(opts: &Options, progname: &str) {
     print!("{}", opts.usage(&brief));
 }
 
-fn parse_and_print(line: &str, single_line: bool) {
+fn parse(roll_desc: &str) -> Option<Roll> {
     /*
     GRAMMAR (this is a regular language)
     ====================================
@@ -137,19 +137,23 @@ fn parse_and_print(line: &str, single_line: bool) {
         ").unwrap();
     }
 
-    match ROLL_RE.captures(line) {
-        Some(cap) => {
-            let nd = cap.at(1).unwrap().parse::<u32>().unwrap();
-            let nf = cap.at(2).unwrap().parse::<u32>().unwrap();
-            let ex = cap.at(3).unwrap_or("0").parse::<i32>().unwrap();
-            let roll = Roll::new(nd, nf, ex);
+    ROLL_RE.captures(roll_desc).map(|cap| {
+        let nd = cap.at(1).unwrap().parse::<u32>().unwrap();
+        let nf = cap.at(2).unwrap().parse::<u32>().unwrap();
+        let ex = cap.at(3).unwrap_or("0").parse::<i32>().unwrap();
+        Roll::new(nd, nf, ex)
+    })
+}
+
+fn parse_and_print(line: &str, single_line: bool) {
+    match parse(line) {
+        Some(roll) => {
             if single_line {
                 println!("{}", roll.print());
             } else {
                 println!("{}", roll.pretty_print());
             }
         }
-
         None => {
             errmsg(&format!("invalid format: {}", line));
         }

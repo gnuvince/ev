@@ -17,6 +17,11 @@ use std::process;
 use regex::Regex;
 use getopts::Options;
 
+enum OutputStyle {
+    SingleLine,
+    MultiLine,
+}
+
 /// A dice roll.
 ///
 /// A dice roll has three components:
@@ -145,13 +150,16 @@ fn parse(roll_desc: &str) -> Option<Roll> {
     })
 }
 
-fn parse_and_print(line: &str, single_line: bool) {
+fn parse_and_print(line: &str, output_style: &OutputStyle) {
     match parse(line) {
         Some(roll) => {
-            if single_line {
-                println!("{}", roll.print());
-            } else {
-                println!("{}", roll.pretty_print());
+            match *output_style {
+                OutputStyle::SingleLine => {
+                    println!("{}", roll.print());
+                }
+                OutputStyle::MultiLine => {
+                    println!("{}", roll.pretty_print());
+                }
             }
         }
         None => {
@@ -180,20 +188,25 @@ fn main() {
         process::exit(0);
     }
 
-    let single_line = matches.opt_present("s");
+    let output_style =
+        if matches.opt_present("s") {
+            OutputStyle::SingleLine
+        } else {
+            OutputStyle::MultiLine
+        };
 
     // Read the rolls from the positional command-line
     // arguments if there are any, otherwise read rolls
     // from stdin.
     if !matches.free.is_empty() {
         for arg in matches.free.iter() {
-            parse_and_print(arg, single_line);
+            parse_and_print(arg, &output_style);
         }
     } else {
         let stdin = io::stdin();
         let mut buf = String::new();
         while stdin.read_line(&mut buf).unwrap() > 0 {
-            parse_and_print(buf.trim(), single_line);
+            parse_and_print(buf.trim(), &output_style);
             buf.clear();
         }
     }

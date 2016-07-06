@@ -32,10 +32,10 @@ pub struct Roll {
 
 impl Roll {
     /// Create a new roll.
-    pub fn new(nd: u32, nf: u32, extra: i32) -> Self {
+    pub fn new(num_dice: u32, num_faces: u32, extra: i32) -> Self {
         Roll {
-            num_dice: nd,
-            num_faces: nf,
+            num_dice: num_dice,
+            num_faces: num_faces,
             extra: extra,
         }
     }

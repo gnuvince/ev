@@ -177,6 +177,9 @@ fn main() {
 
     let single_line = matches.opt_present("s");
 
+    // Read the rolls from the positional command-line
+    // arguments if there are any, otherwise read rolls
+    // from stdin.
     if !matches.free.is_empty() {
         for arg in matches.free.iter() {
             parse_and_print(arg, single_line);

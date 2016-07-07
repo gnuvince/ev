@@ -17,6 +17,11 @@ use std::process;
 use regex::Regex;
 use getopts::Options;
 
+/// An output style.
+///
+/// Dictates whether the min/max/ev output should
+/// be displayed on a single line (useful for Unix
+/// pipe-lines) or on multiple lines (more readable).
 enum OutputStyle {
     SingleLine,
     MultiLine,

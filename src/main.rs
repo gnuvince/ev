@@ -62,9 +62,9 @@ impl Roll {
     /// multiplied by the number of dice, then add the extra.
     pub fn ev(&self) -> f32 {
         // Math reminder:
-        // \sum_{i=1}^{n} = n(n+1) / 2
+        // 1 + 2 + ... + n = n(n+1) / 2
         // therefore
-        // 1/n * \sum_{i=1}^{n} = (n+1) / 2
+        // 1/n * (1 + 2 + ... + n) = (n+1) / 2
         let (nd, nf, extra) = self.float_values();
         let single_die_ev = (nf + 1.0) / 2.0;
         nd * single_die_ev + extra

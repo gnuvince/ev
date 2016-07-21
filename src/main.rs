@@ -36,6 +36,7 @@ enum OutputStyle {
 ///     if a roll has a correct format, but the values
 ///     are too great to be represented as integers, this
 ///     error is returned.
+#[derive(Debug, PartialEq)]
 enum Error {
     InvalidFormat,
     IntegerOverflow
@@ -48,6 +49,7 @@ enum Error {
 /// - A number of dice (positive integer);
 /// - A number of faces (positive integer);
 /// - An extra (e.g., +3 or -4).
+#[derive(Debug, PartialEq)]
 pub struct Roll {
     num_dice: u32,
     num_faces: u32,
@@ -265,4 +267,20 @@ fn test_print() {
     assert_eq!(format!("{}", r), "2d4+1");
     let r = Roll::new(3, 10, -1);
     assert_eq!(format!("{}", r), "3d10-1");
+}
+
+#[test]
+fn test_parse() {
+    assert_eq!(parse(""), Err(Error::InvalidFormat));
+    assert_eq!(parse("d"), Err(Error::InvalidFormat));
+    assert_eq!(parse("5d"), Err(Error::InvalidFormat));
+    assert_eq!(parse("d5"), Err(Error::InvalidFormat));
+    assert_eq!(parse("+5"), Err(Error::InvalidFormat));
+    assert_eq!(parse("-5"), Err(Error::InvalidFormat));
+    assert_eq!(parse("XdY"), Err(Error::InvalidFormat));
+
+    assert_eq!(parse("9999999999d2"), Err(Error::IntegerOverflow));
+    assert_eq!(parse("2d9999999999"), Err(Error::IntegerOverflow));
+    assert_eq!(parse("1d6+9999999999"), Err(Error::IntegerOverflow));
+    assert_eq!(parse("1d6-9999999999"), Err(Error::IntegerOverflow));
 }

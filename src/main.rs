@@ -27,6 +27,15 @@ enum OutputStyle {
     MultiLine,
 }
 
+/// The types of errors that can occur in ev:
+/// - InvalidFormat:
+///     a valid roll format is XdY, XdY+Z, or XdY-Z;
+///     trying to parse a roll specification that has
+///     the wrong format returns this error;
+/// - IntegerOverflow:
+///     if a roll has a correct format, but the values
+///     are too great to be represented as integers, this
+///     error is returned.
 enum Error {
     InvalidFormat,
     IntegerOverflow

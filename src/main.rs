@@ -27,6 +27,11 @@ enum OutputStyle {
     MultiLine,
 }
 
+enum Error {
+    InvalidFormat,
+    IntegerOverflow
+}
+
 /// A dice roll.
 ///
 /// A dice roll has three components:
@@ -109,9 +114,10 @@ impl fmt::Display for Roll {
 }
 
 /// Display a message on stderr
-fn errmsg(msg: &str) {
+fn err(msg: &str) -> ! {
     let mut stderr = io::stderr();
     let _ = writeln!(stderr, "ev: {}", msg);
+    process::exit(1);
 }
 
 /// Show basic usage of the program
@@ -125,7 +131,7 @@ fn usage(opts: &Options, progname: &str) {
     print!("{}", opts.usage(&brief));
 }
 
-fn parse(roll_desc: &str) -> Option<Roll> {
+fn parse(roll_desc: &str) -> Result<Roll, Error> {
     /*
     GRAMMAR (this is a regular language)
     ====================================
@@ -147,17 +153,17 @@ fn parse(roll_desc: &str) -> Option<Roll> {
         ").unwrap();
     }
 
-    ROLL_RE.captures(roll_desc).map(|cap| {
-        let nd = cap.at(1).unwrap().parse::<u32>().unwrap();
-        let nf = cap.at(2).unwrap().parse::<u32>().unwrap();
-        let ex = cap.at(3).unwrap_or("0").parse::<i32>().unwrap();
-        Roll::new(nd, nf, ex)
-    })
+    let cap = try!(ROLL_RE.captures(roll_desc).ok_or(Error::InvalidFormat));
+    let nd = try!(cap.at(1).unwrap().parse::<u32>().or(Err(Error::IntegerOverflow)));
+    let nf = try!(cap.at(2).unwrap().parse::<u32>().or(Err(Error::IntegerOverflow)));
+    let ex = try!(cap.at(3).unwrap_or("0").parse::<i32>().or(Err(Error::IntegerOverflow)));
+    Ok(Roll::new(nd, nf, ex))
+
 }
 
 fn parse_and_print(line: &str, output_style: &OutputStyle) {
     match parse(line) {
-        Some(roll) => {
+        Ok(roll) => {
             match *output_style {
                 OutputStyle::SingleLine => {
                     println!("{}", roll.print());
@@ -167,8 +173,11 @@ fn parse_and_print(line: &str, output_style: &OutputStyle) {
                 }
             }
         }
-        None => {
-            errmsg(&format!("invalid format: {}", line));
+        Err(Error::InvalidFormat) => {
+            err(&format!("invalid format: {}", line));
+        }
+        Err(Error::IntegerOverflow) => {
+            err(&format!("integer too big: {}", line));
         }
     }
 }
@@ -183,8 +192,7 @@ fn main() {
     let matches = match opts.parse(&argv[1..]) {
         Ok(m) => m,
         Err(e) => {
-            errmsg(&format!("{}", e));
-            process::exit(1);
+            err(&format!("{}", e));
         }
     };
 

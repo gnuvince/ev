@@ -125,10 +125,9 @@ impl fmt::Display for Roll {
 }
 
 /// Display a message on stderr
-fn err(msg: &str) -> ! {
+fn errmsg(msg: &str) {
     let mut stderr = io::stderr();
     let _ = writeln!(stderr, "ev: {}", msg);
-    process::exit(1);
 }
 
 /// Show basic usage of the program
@@ -185,10 +184,10 @@ fn parse_and_print(line: &str, output_style: &OutputStyle) {
             }
         }
         Err(Error::InvalidFormat) => {
-            err(&format!("invalid format: {}", line));
+            errmsg(&format!("invalid format: {}", line));
         }
         Err(Error::IntegerOverflow) => {
-            err(&format!("integer too big: {}", line));
+            errmsg(&format!("integer too big: {}", line));
         }
     }
 }
@@ -203,7 +202,8 @@ fn main() {
     let matches = match opts.parse(&argv[1..]) {
         Ok(m) => m,
         Err(e) => {
-            err(&format!("{}", e));
+            errmsg(&format!("{}", e));
+            process::exit(1);
         }
     };
 

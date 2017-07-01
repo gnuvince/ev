@@ -9,6 +9,7 @@ extern crate getopts;
 #[macro_use] extern crate lazy_static;
 
 use std::env::args;
+use std::error::Error;
 use std::fmt;
 use std::io;
 use std::io::Write;
@@ -32,14 +33,38 @@ enum OutputStyle {
 ///     a valid roll format is XdY, XdY+Z, or XdY-Z;
 ///     trying to parse a roll specification that has
 ///     the wrong format returns this error;
-/// - IntegerOverflow:
-///     if a roll has a correct format, but the values
-///     are too great to be represented as integers, this
-///     error is returned.
+/// - TooManyDice:
+///     if a roll has a correct format, but the number
+///     of dice exceeds 2^16.
+/// - TooManySides:
+///     if a roll has a correct format, but the number
+///     of sides exceeds 2^16.
+/// - ExtraTooLarge:
+///     if the bonus/malus of a roll is not between
+///     -2^15 and 2^15 - 1.
 #[derive(Debug, PartialEq)]
-enum Error {
+enum EvError {
     InvalidFormat,
-    IntegerOverflow
+    TooManyDice,
+    TooManySides,
+    ExtraTooLarge,
+}
+
+impl Error for EvError {
+    fn description(&self) -> &'static str {
+        match *self {
+            EvError::InvalidFormat => "invalid format",
+            EvError::TooManyDice => "too many dice",
+            EvError::TooManySides => "too many sides",
+            EvError::ExtraTooLarge => "bonus too large",
+        }
+    }
+}
+
+impl fmt::Display for EvError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str(self.description())
+    }
 }
 
 /// A dice roll.
@@ -51,14 +76,14 @@ enum Error {
 /// - An extra (e.g., +3 or -4).
 #[derive(Debug, PartialEq)]
 pub struct Roll {
-    num_dice: u32,
-    num_faces: u32,
-    extra: i32,
+    num_dice: u16,
+    num_faces: u16,
+    extra: i16,
 }
 
 impl Roll {
     /// Create a new roll.
-    pub fn new(num_dice: u32, num_faces: u32, extra: i32) -> Self {
+    pub fn new(num_dice: u16, num_faces: u16, extra: i16) -> Self {
         Roll {
             num_dice: num_dice,
             num_faces: num_faces,
@@ -115,12 +140,11 @@ impl Roll {
 /// Convert a roll into the `XdY+Z` notation.
 impl fmt::Display for Roll {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let _ = write!(f, "{}d{}", self.num_dice, self.num_faces);
+        write!(f, "{}d{}", self.num_dice, self.num_faces)?;
         if self.extra != 0 {
-            write!(f, "{:+}", self.extra)
-        } else {
-            Ok(())
+            write!(f, "{:+}", self.extra)?;
         }
+        return Ok(());
     }
 }
 
@@ -141,7 +165,7 @@ fn usage(opts: &Options, progname: &str) {
     print!("{}", opts.usage(&brief));
 }
 
-fn parse(roll_desc: &str) -> Result<Roll, Error> {
+fn parse(roll_desc: &str) -> Result<Roll, EvError> {
     /*
     GRAMMAR (this is a regular language)
     ====================================
@@ -163,10 +187,10 @@ fn parse(roll_desc: &str) -> Result<Roll, Error> {
         ").unwrap();
     }
 
-    let cap = try!(ROLL_RE.captures(roll_desc).ok_or(Error::InvalidFormat));
-    let nd = try!(cap.at(1).unwrap().parse::<u32>().or(Err(Error::IntegerOverflow)));
-    let nf = try!(cap.at(2).unwrap().parse::<u32>().or(Err(Error::IntegerOverflow)));
-    let ex = try!(cap.at(3).unwrap_or("0").parse::<i32>().or(Err(Error::IntegerOverflow)));
+    let cap = try!(ROLL_RE.captures(roll_desc).ok_or(EvError::InvalidFormat));
+    let nd = try!(cap.at(1).unwrap().parse::<u16>().or(Err(EvError::TooManyDice)));
+    let nf = try!(cap.at(2).unwrap().parse::<u16>().or(Err(EvError::TooManySides)));
+    let ex = try!(cap.at(3).unwrap_or("0").parse::<i16>().or(Err(EvError::ExtraTooLarge)));
     Ok(Roll::new(nd, nf, ex))
 
 }
@@ -183,11 +207,8 @@ fn parse_and_print(line: &str, output_style: &OutputStyle) {
                 }
             }
         }
-        Err(Error::InvalidFormat) => {
-            errmsg(&format!("invalid format: {}", line));
-        }
-        Err(Error::IntegerOverflow) => {
-            errmsg(&format!("integer too big: {}", line));
+        Err(ev_error) => {
+            errmsg(&format!("{}: {}", ev_error, line));
         }
     }
 }
@@ -228,7 +249,7 @@ fn main() {
         }
     } else {
         let stdin = io::stdin();
-        let mut buf = String::new();
+        let mut buf = String::with_capacity(32);
         while stdin.read_line(&mut buf).unwrap() > 0 {
             parse_and_print(buf.trim(), &output_style);
             buf.clear();
@@ -271,16 +292,16 @@ fn test_print() {
 
 #[test]
 fn test_parse() {
-    assert_eq!(parse(""), Err(Error::InvalidFormat));
-    assert_eq!(parse("d"), Err(Error::InvalidFormat));
-    assert_eq!(parse("5d"), Err(Error::InvalidFormat));
-    assert_eq!(parse("d5"), Err(Error::InvalidFormat));
-    assert_eq!(parse("+5"), Err(Error::InvalidFormat));
-    assert_eq!(parse("-5"), Err(Error::InvalidFormat));
-    assert_eq!(parse("XdY"), Err(Error::InvalidFormat));
+    assert_eq!(parse(""), Err(EvError::InvalidFormat));
+    assert_eq!(parse("d"), Err(EvError::InvalidFormat));
+    assert_eq!(parse("5d"), Err(EvError::InvalidFormat));
+    assert_eq!(parse("d5"), Err(EvError::InvalidFormat));
+    assert_eq!(parse("+5"), Err(EvError::InvalidFormat));
+    assert_eq!(parse("-5"), Err(EvError::InvalidFormat));
+    assert_eq!(parse("XdY"), Err(EvError::InvalidFormat));
 
-    assert_eq!(parse("9999999999d2"), Err(Error::IntegerOverflow));
-    assert_eq!(parse("2d9999999999"), Err(Error::IntegerOverflow));
-    assert_eq!(parse("1d6+9999999999"), Err(Error::IntegerOverflow));
-    assert_eq!(parse("1d6-9999999999"), Err(Error::IntegerOverflow));
+    assert_eq!(parse("9999999999d2"), Err(EvError::TooManyDice));
+    assert_eq!(parse("2d9999999999"), Err(EvError::TooManySides));
+    assert_eq!(parse("1d6+9999999999"), Err(EvError::ExtraTooLarge));
+    assert_eq!(parse("1d6-9999999999"), Err(EvError::ExtraTooLarge));
 }

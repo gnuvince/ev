@@ -180,10 +180,10 @@ fn parse(roll_desc: &str) -> Result<Roll, EvError> {
     lazy_static! {
         static ref ROLL_RE: Regex = Regex::new(r"(?x)
             ^
-            ([1-9][0-9]*)             # Number of dice
-            d                         # The literal 'd'
-            ([1-9][0-9]*)             # Number of faces
-            ([+-][1-9][0-9]*)?        # Optional extra
+            ([1-9][0-9]{0,4})             # Number of dice
+            d                             # The literal 'd'
+            ([1-9][0-9]{0,4})             # Number of faces
+            ([+-][1-9][0-9]{0,4})?        # Optional extra
             $
         ").unwrap();
     }
@@ -300,9 +300,13 @@ fn test_parse() {
     assert_eq!(parse("+5"), Err(EvError::InvalidFormat));
     assert_eq!(parse("-5"), Err(EvError::InvalidFormat));
     assert_eq!(parse("XdY"), Err(EvError::InvalidFormat));
+    assert_eq!(parse("123456d2"), Err(EvError::InvalidFormat));
+    assert_eq!(parse("1d123456"), Err(EvError::InvalidFormat));
+    assert_eq!(parse("1d2+123456"), Err(EvError::InvalidFormat));
+    assert_eq!(parse("1d2-123456"), Err(EvError::InvalidFormat));
 
-    assert_eq!(parse("9999999999d2"), Err(EvError::TooManyDice));
-    assert_eq!(parse("2d9999999999"), Err(EvError::TooManySides));
-    assert_eq!(parse("1d6+9999999999"), Err(EvError::ExtraTooLarge));
-    assert_eq!(parse("1d6-9999999999"), Err(EvError::ExtraTooLarge));
+    assert_eq!(parse("99999d2"), Err(EvError::TooManyDice));
+    assert_eq!(parse("2d99999"), Err(EvError::TooManySides));
+    assert_eq!(parse("1d6+99999"), Err(EvError::ExtraTooLarge));
+    assert_eq!(parse("1d6-99999"), Err(EvError::ExtraTooLarge));
 }

@@ -23,12 +23,13 @@ use getopts::Options;
 /// Dictates whether the min/max/ev output should
 /// be displayed on a single line (useful for Unix
 /// pipe-lines) or on multiple lines (more readable).
-enum OutputStyle {
+pub enum OutputStyle {
     SingleLine,
     MultiLine,
 }
 
 /// The types of errors that can occur in ev:
+///
 /// - InvalidFormat:
 ///     a valid roll format is XdY, XdY+Z, or XdY-Z;
 ///     trying to parse a roll specification that has
@@ -43,7 +44,7 @@ enum OutputStyle {
 ///     if the bonus/malus of a roll is not between
 ///     -2^15 and 2^15 - 1.
 #[derive(Debug, PartialEq)]
-enum EvError {
+pub enum EvError {
     InvalidFormat,
     TooManyDice,
     TooManySides,

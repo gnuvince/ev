@@ -1,5 +1,9 @@
 # ev
 
+## Description
+
+Unix utility to compute the min, max, and expected value of a D&D-like dice roll.
+
 ## Compilation
 
 `ev` can be built using Rust's `cargo` tool:

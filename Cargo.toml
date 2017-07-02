@@ -1,8 +1,8 @@
 [package]
 name = "ev-dice"
-description = "computes the min, max, and expected value of D&D-like dice rolls"
+description = "Unix utility to compute the min, max, and expected value of a D&D-like dice roll"
 homepage = "http://github.com/gnuvince/ev"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["Vincent Foley <vfoley@gmail.com>"]
 license = "MIT"
 

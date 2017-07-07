@@ -240,8 +240,9 @@ fn parse_and_print(line: &str, output_style: &OutputStyle) {
 fn main() {
     let argv: Vec<String> = args().collect();
     let mut opts = Options::new();
-    opts.optflag("h", "help", "display this help message");
     opts.optflag("s", "single-line", "single line display");
+    opts.optflag("h", "help", "display this help message");
+    opts.optflag("v", "version", "display version number");
 
     let matches = match opts.parse(&argv[1..]) {
         Ok(m) => m,
@@ -253,6 +254,11 @@ fn main() {
 
     if matches.opt_present("h") {
         usage(&opts, &argv[0]);
+        process::exit(0);
+    }
+
+    if matches.opt_present("v") {
+        println!("ev: {}", env!("CARGO_PKG_VERSION"));
         process::exit(0);
     }
 

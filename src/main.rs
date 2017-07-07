@@ -201,7 +201,6 @@ fn parse(mut roll_desc: &str) -> Result<Roll, EvError> {
     roll_desc = &roll_desc[i..];
 
     let mut extra = 0;
-    println!("{:?}", roll_desc);
     if roll_desc.starts_with('+') || roll_desc.starts_with('-') {
         let i = read_digits(&roll_desc[1..]);
         if i == 0 { return Err(EvError::MissingExtra); }

@@ -2,7 +2,7 @@
 name = "ev-dice"
 description = "Unix utility to compute the min, max, and expected value of a D&D-like dice roll"
 homepage = "http://github.com/gnuvince/ev"
-version = "0.4.1"
+version = "0.5.0"
 authors = ["Vincent Foley <vfoley@gmail.com>"]
 license = "MIT"
 

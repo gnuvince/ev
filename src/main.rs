@@ -4,9 +4,7 @@ the minimum, maximum and expected value
 of a dice roll expressed in D&D notation.
 */
 
-extern crate regex;
 extern crate getopts;
-#[macro_use] extern crate lazy_static;
 
 use std::env::args;
 use std::error::Error;
@@ -15,8 +13,9 @@ use std::io;
 use std::io::Write;
 use std::process;
 
-use regex::Regex;
 use getopts::Options;
+
+const MAX_DIGITS: usize = 5; // Max number of digits in a number
 
 /// An output style.
 ///
@@ -46,6 +45,9 @@ pub enum OutputStyle {
 #[derive(Debug, PartialEq)]
 pub enum EvError {
     InvalidFormat,
+    MissingNumberOfDice,
+    MissingNumberOfSides,
+    MissingExtra,
     TooManyDice,
     TooManySides,
     ExtraTooLarge,
@@ -55,6 +57,9 @@ impl Error for EvError {
     fn description(&self) -> &'static str {
         match *self {
             EvError::InvalidFormat => "invalid format",
+            EvError::MissingNumberOfDice => "missing number of dice",
+            EvError::MissingNumberOfSides => "missing number of sides",
+            EvError::MissingExtra => "missing bonus",
             EvError::TooManyDice => "too many dice",
             EvError::TooManySides => "too many sides",
             EvError::ExtraTooLarge => "bonus too large",
@@ -166,35 +171,52 @@ fn usage(opts: &Options, progname: &str) {
     print!("{}", opts.usage(&brief));
 }
 
-fn parse(roll_desc: &str) -> Result<Roll, EvError> {
-    /*
-    GRAMMAR (this is a regular language)
-    ====================================
-    non_zero_digit ::= '1' | ... | '9'
-    digit          ::= '0' | non_zero_digit
-    int            ::= non_zero_digit { digit }
-    modifier       ::= '+' int
-                     | '-' int
-    roll           ::= int 'd' int [ modifier ]
-    */
-    lazy_static! {
-        static ref ROLL_RE: Regex = Regex::new(r"(?x)
-            ^
-            ([1-9][0-9]{0,4})             # Number of dice
-            d                             # The literal 'd'
-            ([1-9][0-9]{0,4})             # Number of faces
-            ([+-][1-9][0-9]{0,4})?        # Optional extra
-            $
-        ").unwrap();
+fn read_digits(s: &str) -> usize {
+    let mut i: usize = 0;
+    for c in s.bytes() {
+        if i >= MAX_DIGITS || i >= s.len() || c < b'0' || c > b'9' {
+            break;
+        }
+        i += 1;
+    }
+    return i;
+}
+
+fn parse(mut roll_desc: &str) -> Result<Roll, EvError> {
+    let i = read_digits(roll_desc);
+    if i == 0 { return Err(EvError::MissingNumberOfDice); }
+    if i >= MAX_DIGITS { return Err(EvError::TooManyDice); }
+    let nd = roll_desc[0 .. i].parse::<u16>().or(Err(EvError::TooManyDice))?;
+    roll_desc = &roll_desc[i..];
+
+    if !roll_desc.starts_with('d') {
+        return Err(EvError::InvalidFormat);
+    }
+    roll_desc = &roll_desc[1..];
+
+    let i = read_digits(roll_desc);
+    if i == 0 { return Err(EvError::MissingNumberOfSides); }
+    if i >= MAX_DIGITS { return Err(EvError::TooManySides); }
+    let nf = roll_desc[0 .. i].parse::<u16>().or(Err(EvError::TooManySides))?;
+    roll_desc = &roll_desc[i..];
+
+    let mut extra = 0;
+    println!("{:?}", roll_desc);
+    if roll_desc.starts_with('+') || roll_desc.starts_with('-') {
+        let i = read_digits(&roll_desc[1..]);
+        if i == 0 { return Err(EvError::MissingExtra); }
+        if i >= MAX_DIGITS { return Err(EvError::ExtraTooLarge); }
+        extra = roll_desc[0 .. i+1].parse::<i16>().or(Err(EvError::ExtraTooLarge))?;
+        roll_desc = &roll_desc[i+1 ..];
     }
 
-    let cap = try!(ROLL_RE.captures(roll_desc).ok_or(EvError::InvalidFormat));
-    let nd = try!(cap.at(1).unwrap().parse::<u16>().or(Err(EvError::TooManyDice)));
-    let nf = try!(cap.at(2).unwrap().parse::<u16>().or(Err(EvError::TooManySides)));
-    let ex = try!(cap.at(3).unwrap_or("0").parse::<i16>().or(Err(EvError::ExtraTooLarge)));
-    Ok(Roll::new(nd, nf, ex))
+    if !roll_desc.is_empty() {
+        return Err(EvError::InvalidFormat);
+    }
 
+    return Ok(Roll::new(nd, nf, extra));
 }
+
 
 fn parse_and_print(line: &str, output_style: &OutputStyle) {
     match parse(line) {
@@ -293,20 +315,26 @@ fn test_print() {
 
 #[test]
 fn test_parse() {
-    assert_eq!(parse(""), Err(EvError::InvalidFormat));
-    assert_eq!(parse("d"), Err(EvError::InvalidFormat));
-    assert_eq!(parse("5d"), Err(EvError::InvalidFormat));
-    assert_eq!(parse("d5"), Err(EvError::InvalidFormat));
-    assert_eq!(parse("+5"), Err(EvError::InvalidFormat));
-    assert_eq!(parse("-5"), Err(EvError::InvalidFormat));
-    assert_eq!(parse("XdY"), Err(EvError::InvalidFormat));
-    assert_eq!(parse("123456d2"), Err(EvError::InvalidFormat));
-    assert_eq!(parse("1d123456"), Err(EvError::InvalidFormat));
-    assert_eq!(parse("1d2+123456"), Err(EvError::InvalidFormat));
-    assert_eq!(parse("1d2-123456"), Err(EvError::InvalidFormat));
+    assert_eq!(parse(""), Err(EvError::MissingNumberOfDice));
+    assert_eq!(parse("d"), Err(EvError::MissingNumberOfDice));
+    assert_eq!(parse("5d"), Err(EvError::MissingNumberOfSides));
+    assert_eq!(parse("d5"), Err(EvError::MissingNumberOfDice));
+    assert_eq!(parse("+5"), Err(EvError::MissingNumberOfDice));
+    assert_eq!(parse("-5"), Err(EvError::MissingNumberOfDice));
+    assert_eq!(parse("XdY"), Err(EvError::MissingNumberOfDice));
+    assert_eq!(parse("123456d2"), Err(EvError::TooManyDice));
+    assert_eq!(parse("1d123456"), Err(EvError::TooManySides));
+    assert_eq!(parse("1d2+123456"), Err(EvError::ExtraTooLarge));
+    assert_eq!(parse("1d2-123456"), Err(EvError::ExtraTooLarge));
 
     assert_eq!(parse("99999d2"), Err(EvError::TooManyDice));
     assert_eq!(parse("2d99999"), Err(EvError::TooManySides));
     assert_eq!(parse("1d6+99999"), Err(EvError::ExtraTooLarge));
     assert_eq!(parse("1d6-99999"), Err(EvError::ExtraTooLarge));
+
+    assert_eq!(parse("3x4"), Err(EvError::InvalidFormat));
+    assert_eq!(parse("3d4+"), Err(EvError::MissingExtra));
+    assert_eq!(parse("3d4-"), Err(EvError::MissingExtra));
+    assert_eq!(parse("3d4*4"), Err(EvError::InvalidFormat));
+    assert_eq!(parse("3x4/4"), Err(EvError::InvalidFormat));
 }

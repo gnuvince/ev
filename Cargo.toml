@@ -7,9 +7,7 @@ authors = ["Vincent Foley <vfoley@gmail.com>"]
 license = "MIT"
 
 [dependencies]
-regex = "0.1.71"
 getopts = "0.2.14"
-lazy_static = "0.2.8"
 
 [[bin]]
 name = "ev"
